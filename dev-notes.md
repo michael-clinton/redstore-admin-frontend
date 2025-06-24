@@ -1,0 +1,2 @@
+Lesson Learned:
+When deploying or running locally, the base path in vite.config.js directly affects how routes are resolved. Using a non-root base path like '/admin-ui/' caused the app to default to /admin-ui, breaking direct access to /. Setting base: '/' ensures the app loads correctly at the root path and simplifies both local development and standard deployments.
