@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Button,
@@ -23,22 +23,21 @@ import {
   Alert,
 } from "@mui/material";
 import MainCard from "components/MainCard";
+import axiosInstance from "../../api/axios"; // ✅ using correct axios instance path
 
 const TestimonialManagement = () => {
   const [tabIndex, setTabIndex] = useState(0);
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [messageSeverity, setMessageSeverity] = useState("info"); // success, error, etc.
+  const [messageSeverity, setMessageSeverity] = useState("info");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
 
-  // Form States
   const [text, setText] = useState("");
   const [rating, setRating] = useState("");
   const [userName, setUserName] = useState("");
   const [userImage, setUserImage] = useState(null);
 
-  // Delete Dialog States
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [testimonialToDelete, setTestimonialToDelete] = useState(null);
 
@@ -50,12 +49,10 @@ const TestimonialManagement = () => {
   const fetchTestimonials = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:7000/testimonials");
-      const data = await response.json();
-      if (response.ok) setTestimonials(data);
-      else showMessage(`Failed to fetch testimonials: ${data.error}`, "error");
+      const response = await axiosInstance.get("/testimonials");
+      setTestimonials(response.data);
     } catch (error) {
-      showMessage(`Error: ${error.message}`, "error");
+      showMessage(`Failed to fetch testimonials: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
@@ -80,24 +77,16 @@ const TestimonialManagement = () => {
     formData.append("userImage", userImage);
 
     try {
-      const response = await fetch("http://localhost:7000/testimonials", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-      if (response.ok) {
-        showMessage("Testimonial added successfully!", "success");
-        setText("");
-        setRating("");
-        setUserName("");
-        setUserImage(null);
-        fetchTestimonials();
-      } else {
-        showMessage(`Failed to add testimonial: ${result.error}`, "error");
-      }
+      const response = await axiosInstance.post("/testimonials", formData);
+      showMessage("Testimonial added successfully!", "success");
+      setText("");
+      setRating("");
+      setUserName("");
+      setUserImage(null);
+      fetchTestimonials();
     } catch (error) {
-      showMessage(`Error: ${error.message}`, "error");
+      const msg = error.response?.data?.error || error.message;
+      showMessage(`Failed to add testimonial: ${msg}`, "error");
     }
   };
 
@@ -108,20 +97,14 @@ const TestimonialManagement = () => {
 
   const confirmDelete = async () => {
     try {
-      const response = await fetch(
-        `http://localhost:7000/testimonials/${testimonialToDelete}`,
-        { method: "DELETE" }
+      await axiosInstance.delete(`/testimonials/${testimonialToDelete}`);
+      showMessage("Testimonial deleted successfully.", "success");
+      setTestimonials((prev) =>
+        prev.filter((t) => t._id !== testimonialToDelete)
       );
-
-      if (response.ok) {
-        showMessage("Testimonial deleted successfully.", "success");
-        setTestimonials(testimonials.filter((t) => t._id !== testimonialToDelete));
-      } else {
-        const result = await response.json();
-        showMessage(`Failed to delete testimonial: ${result.error}`, "error");
-      }
     } catch (error) {
-      showMessage(`Error: ${error.message}`, "error");
+      const msg = error.response?.data?.error || error.message;
+      showMessage(`Failed to delete testimonial: ${msg}`, "error");
     } finally {
       setDeleteDialogOpen(false);
       setTestimonialToDelete(null);
@@ -220,7 +203,10 @@ const TestimonialManagement = () => {
         </Paper>
       )}
 
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
         <DialogTitle>Confirm Deletion</DialogTitle>
         <DialogContent>
           <DialogContentText>

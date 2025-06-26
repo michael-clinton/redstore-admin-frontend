@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axiosInstance from "../../api/axios";
 import {
   Box,
   Button,
@@ -46,12 +47,10 @@ const TestimonialManagement = () => {
   const fetchTestimonials = async () => {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:7000/testimonials");
-      const data = await response.json();
-      if (response.ok) setTestimonials(data);
-      else setMessage(`Failed to fetch testimonials: ${data.error}`);
+      const response = await axiosInstance.get("/testimonials");
+      setTestimonials(response.data);
     } catch (error) {
-      setMessage(`Error: ${error.message}`);
+      setMessage(`Error: ${error.response?.data?.error || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -67,27 +66,20 @@ const TestimonialManagement = () => {
     formData.append("text", text);
     formData.append("rating", rating);
     formData.append("userName", userName);
-    formData.append("userImage", userImage);
+    if (userImage) {
+      formData.append("userImage", userImage);
+    }
 
     try {
-      const response = await fetch("http://localhost:7000/testimonials/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-      if (response.ok) {
-        setMessage("Testimonial added successfully!");
-        setText("");
-        setRating("");
-        setUserName("");
-        setUserImage(null);
-        fetchTestimonials();
-      } else {
-        setMessage(`Failed to add testimonial: ${result.error}`);
-      }
+      const response = await axiosInstance.post("/testimonials/upload", formData);
+      setMessage("Testimonial added successfully!");
+      setText("");
+      setRating("");
+      setUserName("");
+      setUserImage(null);
+      fetchTestimonials();
     } catch (error) {
-      setMessage(`Error: ${error.message}`);
+      setMessage(`Failed to add testimonial: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -98,20 +90,11 @@ const TestimonialManagement = () => {
 
   const confirmDelete = async () => {
     try {
-      const response = await fetch(
-        `http://localhost:7000/testimonials/${testimonialToDelete}`,
-        { method: "DELETE" }
-      );
-
-      if (response.ok) {
-        setMessage("Testimonial deleted successfully.");
-        setTestimonials(testimonials.filter((t) => t._id !== testimonialToDelete));
-      } else {
-        const result = await response.json();
-        setMessage(`Failed to delete testimonial: ${result.error}`);
-      }
+      await axiosInstance.delete(`/testimonials/${testimonialToDelete}`);
+      setMessage("Testimonial deleted successfully.");
+      setTestimonials(testimonials.filter((t) => t._id !== testimonialToDelete));
     } catch (error) {
-      setMessage(`Error: ${error.message}`);
+      setMessage(`Failed to delete testimonial: ${error.response?.data?.error || error.message}`);
     } finally {
       setDeleteDialogOpen(false);
       setTestimonialToDelete(null);
@@ -176,6 +159,7 @@ const TestimonialManagement = () => {
                       component="img"
                       image={testimonial.userImage}
                       alt={testimonial.userName}
+                      sx={{ height: 200 }}
                     />
                     <CardContent>
                       <Typography>{testimonial.text}</Typography>

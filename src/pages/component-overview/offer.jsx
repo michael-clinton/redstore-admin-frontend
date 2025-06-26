@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "../../api/axios"; // ✅ your axios instance
 import {
   Container,
   TextField,
@@ -7,6 +7,8 @@ import {
   Typography,
   CircularProgress,
   Box,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 
 const OfferAdmin = () => {
@@ -19,22 +21,37 @@ const OfferAdmin = () => {
   const [loading, setLoading] = useState(false);
   const [offer, setOffer] = useState(null);
 
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const showSnackbar = (message, severity = "success") => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
   // Fetch existing offer
   useEffect(() => {
     const fetchOffer = async () => {
       try {
-        const { data } = await axios.get("http://localhost:7000/offers/offer-show");
+        const { data } = await axiosInstance.get("/offers/offer-show");
         setOffer(data);
         if (data) {
           setForm({
             title: data.title || "",
             description: data.description || "",
             link: data.link || "",
-            image: null, // API does not return the file itself
+            image: null, // No file from API
           });
         }
       } catch (err) {
         console.error("Error fetching offer:", err);
+        showSnackbar("Failed to fetch offer", "error");
       }
     };
 
@@ -43,11 +60,11 @@ const OfferAdmin = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e) => {
-    setForm({ ...form, image: e.target.files[0] });
+    setForm((prev) => ({ ...prev, image: e.target.files[0] }));
   };
 
   const handleSubmit = async (e) => {
@@ -61,19 +78,20 @@ const OfferAdmin = () => {
     if (form.image) formData.append("image", form.image);
 
     try {
-      const response = await axios.post("http://localhost:7000/offers/offer", formData);
-      alert("Offer saved successfully");
-      setOffer(response.data); // Update offer state after save
+      const { data } = await axiosInstance.post("/offers/offer", formData);
+      showSnackbar("Offer saved successfully", "success");
+      setOffer(data); // Refresh offer state
     } catch (err) {
       console.error("Error saving offer:", err);
-      alert("Failed to save offer");
+      const msg = err.response?.data?.error || "Failed to save offer";
+      showSnackbar(msg, "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container maxWidth="sm" sx={{ mt: 5 }}>
       <Typography variant="h4" gutterBottom>
         {offer ? "Update Offer" : "Create Offer"}
       </Typography>
@@ -85,6 +103,7 @@ const OfferAdmin = () => {
           value={form.title}
           onChange={handleChange}
           margin="normal"
+          required
         />
         <TextField
           fullWidth
@@ -95,6 +114,7 @@ const OfferAdmin = () => {
           margin="normal"
           multiline
           rows={4}
+          required
         />
         <TextField
           fullWidth
@@ -103,12 +123,18 @@ const OfferAdmin = () => {
           value={form.link}
           onChange={handleChange}
           margin="normal"
+          required
         />
         <Box sx={{ mt: 2 }}>
           <Button variant="contained" component="label">
             Upload Image
             <input type="file" hidden onChange={handleFileChange} />
           </Button>
+          {form.image && (
+            <Typography sx={{ mt: 1 }} variant="body2">
+              Selected: {form.image.name}
+            </Typography>
+          )}
         </Box>
         <Button
           fullWidth
@@ -121,6 +147,21 @@ const OfferAdmin = () => {
           {loading ? <CircularProgress size={24} /> : "Save Offer"}
         </Button>
       </form>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

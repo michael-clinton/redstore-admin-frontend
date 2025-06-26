@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axiosInstance from "../../api/axiosInstance";
 import slugify from "slugify";
 import {
   Box,
@@ -30,7 +30,6 @@ import MainCard from "components/MainCard";
 
 const ProductManagement = () => {
   const [tabIndex, setTabIndex] = useState(0);
-
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [name, setName] = useState("");
@@ -45,7 +44,6 @@ const ProductManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
-
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -54,7 +52,7 @@ const ProductManagement = () => {
   const fetchCategories = async () => {
     setLoadingCategories(true);
     try {
-      const { data } = await axios.get("http://localhost:7000/categories");
+      const { data } = await axiosInstance.get("/categories");
       setCategories(data);
     } catch (error) {
       setMessage(`Error fetching categories: ${error.message}`);
@@ -66,7 +64,7 @@ const ProductManagement = () => {
   const fetchProducts = async () => {
     setLoadingProducts(true);
     try {
-      const { data } = await axios.get("http://localhost:7000/products");
+      const { data } = await axiosInstance.get("/products");
       setProducts(data);
     } catch (error) {
       setMessage(`Error fetching products: ${error.message}`);
@@ -106,18 +104,11 @@ const ProductManagement = () => {
     setSizes(sizes.filter((_, i) => i !== index));
   };
 
-
-
   const addCategory = async () => {
-    if (!newCategoryName.trim()) {
-      alert("Category name is required");
-      return;
-    }
-
+    if (!newCategoryName.trim()) return alert("Category name is required");
     const slug = slugify(newCategoryName.trim(), { lower: true });
-
     try {
-      await axios.post("http://localhost:7000/categories/add", {
+      await axiosInstance.post("/categories/add", {
         name: newCategoryName.trim(),
         slug,
       });
@@ -144,7 +135,7 @@ const ProductManagement = () => {
     formData.append("sizes", JSON.stringify(sizes));
 
     try {
-      await axios.post("http://localhost:7000/upload/upload-all", formData);
+      await axiosInstance.post("/upload/upload-all", formData);
       setMessage("Product uploaded successfully!");
       setName("");
       setPrice("");
@@ -168,7 +159,7 @@ const ProductManagement = () => {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(`http://localhost:7000/products/${productToDelete}`);
+      await axiosInstance.delete(`/products/${productToDelete}`);
       setMessage("Product deleted successfully.");
       setProducts(products.filter((p) => p._id !== productToDelete));
     } catch (error) {
@@ -197,11 +188,7 @@ const ProductManagement = () => {
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 size="small"
               />
-              <Button
-                variant="contained"
-                onClick={addCategory}
-                disabled={addingCategory}
-              >
+              <Button variant="contained" onClick={addCategory} disabled={addingCategory}>
                 {addingCategory ? "Adding..." : "Add"}
               </Button>
             </Stack>
@@ -209,52 +196,16 @@ const ProductManagement = () => {
 
           <form onSubmit={handleSubmit}>
             <Stack spacing={3}>
-              <TextField
-                label="Product Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                fullWidth
-                required
-              />
-              <TextField
-                label="Price"
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                fullWidth
-                required
-              />
-              <TextField
-                label="Rating (1-5)"
-                type="number"
-                value={rating}
-                onChange={(e) => setRating(e.target.value)}
-                inputProps={{ min: 1, max: 5 }}
-                fullWidth
-                required
-              />
-              <TextField
-                label="Product Description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                fullWidth
-                multiline
-                rows={4}
-                required
-              />
+              <TextField label="Product Name" value={name} onChange={(e) => setName(e.target.value)} fullWidth required />
+              <TextField label="Price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} fullWidth required />
+              <TextField label="Rating (1-5)" type="number" value={rating} onChange={(e) => setRating(e.target.value)} inputProps={{ min: 1, max: 5 }} fullWidth required />
+              <TextField label="Product Description" value={description} onChange={(e) => setDescription(e.target.value)} fullWidth multiline rows={4} required />
 
               <FormControl fullWidth required>
                 <InputLabel>Category</InputLabel>
-                <Select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  label="Category"
-                  disabled={loadingCategories}
-                >
+                <Select value={category} onChange={(e) => setCategory(e.target.value)} label="Category" disabled={loadingCategories}>
                   {categories.map((cat) => (
-                    <MenuItem key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </MenuItem>
+                    <MenuItem key={cat._id} value={cat._id}>{cat.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -271,61 +222,27 @@ const ProductManagement = () => {
                 <Typography variant="subtitle1">Upload Multiple Images:</Typography>
                 <Button variant="contained" component="label">
                   Choose Files
-                  <input
-                    type="file"
-                    multiple
-                    hidden
-                    onChange={handleMultipleImagesChange}
-                  />
+                  <input type="file" multiple hidden onChange={handleMultipleImagesChange} />
                 </Button>
               </Box>
 
               <Box>
                 <Typography variant="subtitle1">Product Sizes:</Typography>
                 {sizes.map((size, index) => (
-                  <Stack
-                    key={index}
-                    direction="row"
-                    spacing={2}
-                    alignItems="center"
-                  >
-                    <TextField
-                      label="Size"
-                      value={size.size}
-                      onChange={(e) => handleSizeChange(index, "size", e.target.value)}
-                      required
-                    />
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      onClick={() => removeSizeField(index)}
-                    >
-                      Remove
-                    </Button>
+                  <Stack key={index} direction="row" spacing={2} alignItems="center">
+                    <TextField label="Size" value={size.size} onChange={(e) => handleSizeChange(index, "size", e.target.value)} required />
+                    <Button variant="outlined" color="error" onClick={() => removeSizeField(index)}>Remove</Button>
                   </Stack>
                 ))}
-                <Button variant="contained" onClick={addSizeField}>
-                  Add Size
-                </Button>
+                <Button variant="contained" onClick={addSizeField}>Add Size</Button>
               </Box>
 
-              <Button
-                type="submit"
-                variant="contained"
-                color="primary"
-                disabled={isLoading}
-                fullWidth
-              >
+              <Button type="submit" variant="contained" color="primary" disabled={isLoading} fullWidth>
                 {isLoading ? <CircularProgress size={24} /> : "Upload Product"}
               </Button>
 
               {message && (
-                <Typography
-                  variant="body1"
-                  color={message.toLowerCase().includes("fail") ? "error" : "primary"}
-                >
-                  {message}
-                </Typography>
+                <Typography variant="body1" color={message.toLowerCase().includes("fail") ? "error" : "primary"}>{message}</Typography>
               )}
             </Stack>
           </form>
@@ -335,14 +252,7 @@ const ProductManagement = () => {
       {tabIndex === 1 && (
         <Box sx={{ mt: 2 }}>
           {loadingProducts ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                minHeight: "150px",
-              }}
-            >
+            <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "150px" }}>
               <CircularProgress />
             </Box>
           ) : products.length === 0 ? (
@@ -353,33 +263,16 @@ const ProductManagement = () => {
                 <Grid item xs={12} sm={6} md={4} key={product._id}>
                   <Card sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
                     {product.singleImage && (
-                      <CardMedia
-                        component="img"
-                        height="200"
-                        image={product.singleImage}
-                        alt={product.name}
-                      />
+                      <CardMedia component="img" height="200" image={product.singleImage} alt={product.name} />
                     )}
                     <CardContent>
                       <Typography variant="h6">{product.name}</Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        Price: ${product.price}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        Rating: {product.rating}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        Category: {product.category?.name || "N/A"}
-                      </Typography>
+                      <Typography variant="body2" color="textSecondary">Price: ${product.price}</Typography>
+                      <Typography variant="body2" color="textSecondary">Rating: {product.rating}</Typography>
+                      <Typography variant="body2" color="textSecondary">Category: {product.category?.name || "N/A"}</Typography>
                     </CardContent>
                     <CardActions sx={{ mt: "auto" }}>
-                      <Button
-                        size="small"
-                        color="error"
-                        onClick={() => openDeleteDialog(product._id)}
-                      >
-                        Delete
-                      </Button>
+                      <Button size="small" color="error" onClick={() => openDeleteDialog(product._id)}>Delete</Button>
                     </CardActions>
                   </Card>
                 </Grid>
