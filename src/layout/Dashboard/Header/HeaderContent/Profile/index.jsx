@@ -148,7 +148,7 @@ export default function Profile() {
         <Stack direction="row" sx={{ gap: 1.25, alignItems: 'center', p: 0.5 }}>
           <Avatar
             alt="profile user"
-            src={profileData.avatar || fallbackAvatar}
+            src={profileData.profileImage || fallbackAvatar}
             size="sm"
             onError={(e) => {
               e.currentTarget.src = fallbackAvatar;
@@ -186,7 +186,7 @@ export default function Profile() {
                         <Stack direction="row" spacing={1.25} alignItems="center">
                           <Avatar
                             alt="profile user"
-                            src={profileData.avatar || fallbackAvatar}
+                            src={profileData.profileImage || fallbackAvatar}
                             sx={{ width: 32, height: 32 }}
                             onError={(e) => {
                               e.currentTarget.src = fallbackAvatar;
